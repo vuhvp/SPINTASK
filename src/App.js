@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
@@ -232,7 +233,7 @@ const App = () => {
                     </span>
                   </td>
                   <td>{task.project}</td>
-                  <td>
+                  <td className='fit-content'>
                     <div>
                       {task.workloads.map(w => (
                         <span key={w.id} className="badge bg-secondary me-1 mb-1">
