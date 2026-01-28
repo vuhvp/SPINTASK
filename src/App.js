@@ -169,6 +169,16 @@ const App = () => {
         if (wEnd <= wStart) {
           newErrors[`workload-end-${workload.id}`] = `Workload ${index + 1} end date must be after start date`;
         }
+        if (formData.startDate && formData.endDate) {
+          const start = new Date(formData.startDate);
+          const end = new Date(formData.endDate);
+          if (wStart < start) {
+            newErrors[`workload-start-${workload.id}`] = `Workload ${index + 1} start date must be after start date`;
+          }
+          if (wEnd > end) {
+            newErrors[`workload-end-${workload.id}`] = `Workload ${index + 1} end date must be before end date`;
+          }
+        }
       }
     });
 
