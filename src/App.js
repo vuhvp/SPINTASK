@@ -6,6 +6,7 @@ const App = () => {
   const [tasks, setTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,23 +26,26 @@ const App = () => {
     project: ['Project A', 'Project B', 'Project C']
   };
 
+  
+
   // Load tasks from localStorage on start
   useEffect(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    console.log(savedTasks, 'task');
-    
+    const savedTasks = localStorage.getItem('savedTasks');
     if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
+      const t = JSON.parse(savedTasks)
+      if (t.length > 0) {
+        setTasks(JSON.parse(savedTasks));
+      }
     }
   }, []);
 
   // Save tasks to localStorage when tasks have changes
   useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('savedTasks', JSON.stringify(tasks));
   }, [tasks]);
 
   function handleInputChange(e) {
-    const { name, value } = e.target;
+    const { name, value } = e.target; 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -67,6 +71,10 @@ const App = () => {
   };
 
   function handleSubmit() {
+    if (!validateForm()) {
+      return;
+    }
+
     if (editingTask !== null) {
       // Update existing task
       setTasks(prev => prev.map((task, index) => 
@@ -95,6 +103,7 @@ const App = () => {
     const task = tasks[index];
     setFormData({ ...task });
     setEditingTask(index);
+    setErrors({})
     setShowModal(true);
   };
 
@@ -115,7 +124,56 @@ const App = () => {
       workloads: []
     });
     setEditingTask(null);
+    setErrors({})
     setShowModal(true);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Task name required
+    if (!formData.name.trim()) {
+      newErrors.name = 'Task name is required';
+    }
+
+    // Start date required
+    if (!formData.startDate) {
+      newErrors.startDate = 'Start date is required';
+    }
+
+    // End date required
+    if (!formData.endDate) {
+      newErrors.endDate = 'End date is required';
+    }
+
+    // End date validation
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      if (end <= start) {
+        newErrors.endDate = 'End date must be after start date';
+      }
+    }
+
+    // Workload validation: each must have dates and end > start
+    formData.workloads.forEach((workload, index) => {
+      if (!workload.startDate) {
+        newErrors[`workload-start-${workload.id}`] = `Workload ${index + 1} start date required`;
+      }
+      if (!workload.endDate) {
+        newErrors[`workload-end-${workload.id}`] = `Workload ${index + 1} end date required`;
+      }
+      if (workload.startDate && workload.endDate) {
+        const wStart = new Date(workload.startDate);
+        const wEnd = new Date(workload.endDate);
+        if (wEnd <= wStart) {
+          newErrors[`workload-end-${workload.id}`] = `Workload ${index + 1} end date must be after start date`;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   return (
@@ -212,12 +270,13 @@ const App = () => {
                         <label className="form-label">Task Name</label>
                         <input 
                           type="text" 
-                          className="form-control" 
+                          className={`form-control ${errors.name ? 'is-invalid' : ''}`} 
                           name="name" 
                           value={formData.name}
                           onChange={handleInputChange}
                           required 
                         />
+                        { errors.name && <div className="invalid-feedback">{errors.name}</div> }
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -239,11 +298,12 @@ const App = () => {
                         <label className="form-label">Start Date</label>
                         <input 
                           type="date" 
-                          className="form-control" 
+                          className={`form-control ${errors.startDate ? 'is-invalid' : ''}`} 
                           name="startDate" 
                           value={formData.startDate}
                           onChange={handleInputChange}
                         />
+                        { errors.startDate && <div className="invalid-feedback">{errors.startDate}</div> }
                       </div>
                     </div>
                     <div className="col-md-3">
@@ -251,11 +311,12 @@ const App = () => {
                         <label className="form-label">End Date</label>
                         <input 
                           type="date" 
-                          className="form-control" 
+                          className={`form-control ${errors.endDate ? 'is-invalid' : ''}`} 
                           name="endDate" 
                           value={formData.endDate}
                           onChange={handleInputChange}
                         />
+                        { errors.endDate && <div className="invalid-feedback">{errors.endDate}</div> }
                       </div>
                     </div>
                     <div className="col-md-3">
@@ -334,22 +395,28 @@ const App = () => {
                       </button>
                     </div>
                     {formData.workloads.map(workload => (
-                      <div key={workload.id} className="row mb-2 align-items-end">
+                      <div key={workload.id} className="row mb-2">
                         <div className="col-md-4">
                           <input
                             type="date"
-                            className="form-control form-control-sm"
+                            className={`form-control ${errors[`workload-start-${workload.id}`] ? 'is-invalid' : ''}`}
                             value={workload.startDate}
                             onChange={(e) => updateWorkload(workload.id, 'startDate', e.target.value)}
                           />
+                          {errors[`workload-start-${workload.id}`] && (
+                            <div className="form-text text-danger">{errors[`workload-start-${workload.id}`]}</div>
+                          )}
                         </div>
                         <div className="col-md-4">
                           <input
                             type="date"
-                            className="form-control form-control-sm"
+                            className={`form-control ${errors[`workload-end-${workload.id}`] ? 'is-invalid' : ''}`}
                             value={workload.endDate}
                             onChange={(e) => updateWorkload(workload.id, 'endDate', e.target.value)}
                           />
+                          {errors[`workload-end-${workload.id}`] && (
+                            <div className="form-text text-danger">{errors[`workload-end-${workload.id}`]}</div>
+                          )}
                         </div>
                         <div className="col-md-4">
                           <button 
